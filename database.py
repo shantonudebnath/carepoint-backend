@@ -3,9 +3,9 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
-DB_USER = "root"          
-DB_PASS = ""              
-DB_HOST = "localhost"
+DB_USER = "avnadmin"          
+DB_PASS = "AVNS_YMuhD0k-Wje55tNCfUd"              
+DB_HOST = "mysql-228aa29b-shantonudebnath-f9bb.e.aivencloud.com"
 DB_NAME = "patientdata"        
 
 SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
