@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.venv
+venv
+
+# Secrets — never commit
+.env
+.env.local
+ca.pem
+!.env.example
+
+# Model / data caches
+.hf_cache/
+.nltk_data/
+nltk_data/

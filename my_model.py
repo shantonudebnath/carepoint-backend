@@ -16,8 +16,11 @@ from kmodes.kmodes import KModes
 
 # ---------- GLOBAL SETUP----------
 
-nltk.download("punkt", quiet=True)
-nltk.download("stopwords", quiet=True)
+for _pkg in ("punkt", "punkt_tab", "stopwords"):
+    try:
+        nltk.download(_pkg, quiet=True)
+    except Exception:
+        pass
 
 stop_words = set(stopwords.words("english"))
 stemmer = PorterStemmer()
@@ -120,10 +123,23 @@ def preprocess_text(text: str) -> str:
 # ---------- BIOBERT   ----------
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-tokenizer = AutoTokenizer.from_pretrained("dmis-lab/biobert-base-cased-v1.1")
-biomodel = AutoModel.from_pretrained("dmis-lab/biobert-base-cased-v1.1").to(device)
+
+# Loaded lazily on first use so the web server can boot (and answer other
+# endpoints) without waiting on the ~400MB BioBERT download.
+_tokenizer = None
+_biomodel = None
+
+
+def _load_biobert():
+    global _tokenizer, _biomodel
+    if _biomodel is None:
+        _tokenizer = AutoTokenizer.from_pretrained("dmis-lab/biobert-base-cased-v1.1")
+        _biomodel = AutoModel.from_pretrained("dmis-lab/biobert-base-cased-v1.1").to(device)
+    return _tokenizer, _biomodel
+
 
 def embed_biobert(sent_list, batch_size=16, max_length=128):
+    tokenizer, biomodel = _load_biobert()
     all_embs = []
     biomodel.eval()
     with torch.no_grad():

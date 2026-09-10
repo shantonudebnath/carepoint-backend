@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 import google.generativeai as genai
 
-from database import get_db, LabTest
+from database import get_db, LabTest, seed_if_empty
 from my_model import generate_summary_from_report_df
 
 
@@ -38,6 +38,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def _startup_seed():
+    try:
+        print("[startup] DB seed:", seed_if_empty())
+    except Exception as e:
+        print("[startup] DB seed failed:", e)
+
+
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "Smart Emergency AI Backend"}
 
 
 # =====================================================
