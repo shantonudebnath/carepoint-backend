@@ -62,11 +62,15 @@ def get_db():
 
 
 def seed_if_empty() -> str:
-    """Create the lab-report table and load the demo data if it is missing/empty.
+    """Load the demo dataset from seed.sql when the DB doesn't match it.
 
-    Runs once on startup so a fresh database (e.g. a new Railway MySQL) is usable
-    without a manual import. Idempotent: does nothing when data already exists.
+    Runs on startup so a fresh database (e.g. a new Railway MySQL) is usable
+    without a manual import. seed.sql starts with a `-- SEED_ROWS: <n>` header;
+    if the table already has exactly that many rows nothing happens, otherwise
+    the file (which begins with DROP TABLE) rebuilds and reloads it.
     """
+    import re
+
     from sqlalchemy import text
 
     seed_path = os.path.join(os.path.dirname(__file__), "seed.sql")
@@ -74,7 +78,16 @@ def seed_if_empty() -> str:
         return "seed.sql not found; skipped"
 
     with open(seed_path, "r", encoding="utf-8") as fh:
-        blocks = [b.strip() for b in fh.read().split("\n\n") if b.strip()]
+        raw = fh.read()
+
+    m = re.search(r"SEED_ROWS:\s*(\d+)", raw)
+    expected = int(m.group(1)) if m else None
+
+    # Split into statements, dropping full-line SQL comments.
+    body = "\n".join(
+        ln for ln in raw.splitlines() if not ln.lstrip().startswith("--")
+    )
+    statements = [s.strip() for s in body.split(";\n") if s.strip()]
 
     with engine.begin() as conn:
         try:
@@ -84,11 +97,11 @@ def seed_if_empty() -> str:
         except Exception:
             count = 0
 
-        if count and count > 0:
+        if count and (expected is None or count == expected):
             return f"already populated ({count} rows)"
 
-        for block in blocks:
-            conn.exec_driver_sql(block.rstrip(";"))
+        for stmt in statements:
+            conn.exec_driver_sql(stmt.rstrip(";"))
 
         count = conn.execute(
             text("SELECT COUNT(*) FROM single_patient_15_tests")
